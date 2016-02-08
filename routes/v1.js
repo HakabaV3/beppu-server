@@ -1,7 +1,8 @@
 var express = require('express'),
 	router = express.Router(),
 	authRouter = require('./v1/auth.js'),
-	userRouter = require('./v1/user.js');
+	userRouter = require('./v1/user.js'),
+	gameRouter = require('./v1/game.js');
 
 express.response.ok = function(code, result) {
 	return this.json({
@@ -30,5 +31,6 @@ router.use(function(req, res, next) {
 
 router.use('/auth', authRouter);
 router.use('/user', userRouter);
+router.use('/game', gameRouter);
 
 module.exports = router;
