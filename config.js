@@ -18,7 +18,7 @@ switch (config.ENV) {
 			DB_HOST: 'localhost',
 			DB_PORT: 28017,
 			DB_NAME: 'beppu-server-dev',
-			EXPRESS_PORT: 4000,
+			EXPRESS_PORT: 5000,
 		});
 		break;
 
@@ -27,7 +27,7 @@ switch (config.ENV) {
 			DB_HOST: 'localhost',
 			DB_PORT: 28018,
 			DB_NAME: 'beppu-server-staging',
-			EXPRESS_PORT: 4001,
+			EXPRESS_PORT: 5001,
 		});
 		break;
 
