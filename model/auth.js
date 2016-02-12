@@ -14,6 +14,7 @@ _.pSignIn = function(query) {
 			if (err) return reject(Error.mongoose(500, err));
 			if (!user) return reject(Error.unauthorized);
 
+			AuthHelper.currentUser = user;
 			return resolve(user);
 		});
 	});
@@ -46,6 +47,7 @@ _.pCreate = function(user) {
 				if (!user) resolve(createdAuth);
 
 				user.token = createdAuth.token;
+				AuthHelper.currentUser = user;
 				return resolve(user);
 			});
 	});
