@@ -1,10 +1,11 @@
 var mongoose = require('./db.js'),
 	schema = require('../schema/game.js'),
+	AuthHelper = require('../helper/auth.js'),
+	Qrcode = require('qrcode'),
 	Error = require('./error.js');
 
 var _ = {},
-	GameModel = mongoose.model('Game', schema),
-	AuthHelper = require('../helper/auth.js');
+	GameModel = mongoose.model('Game', schema);
 
 _.pGetOne = function(query, userId) {
 	console.log('Game.pGetOne\n');
@@ -101,6 +102,14 @@ _.pipeSuccessRender = function(req, res, game) {
 		game: gameObj
 	});
 
+};
+
+_.pQrcodeRender = function(req, res, game) {
+	Qrcode.toDataURL(game.uuid, function(err, url) {
+		res.ok(200, {
+			data: url
+		})
+	});
 };
 
 module.exports = _;

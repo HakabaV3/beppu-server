@@ -72,4 +72,17 @@ router.post('/:gameId/invitation', function(req, res) {
 		.catch(error => Error.pipeErrorRender(req, res, error))
 });
 
+router.get('/:gameId/qrcode', function(req, res) {
+	var authQuery = {
+			token: req.headers['x-session-token']
+		},
+		gameQuery = {
+			uuid: req.params.gameId
+		};
+	Auth.pGetOne(authQuery)
+		.then(auth => Game.pGetOne(gameQuery, auth.userId))
+		.then(game => Game.pQrcodeRender(req, res, game))
+		.catch(error => Error.pipeErrorRender(req, res, error));
+})
+
 module.exports = router;
