@@ -5,12 +5,28 @@ var mongoose = require('./db.js'),
 var _ = {},
 	GameModel = mongoose.model('Game', schema);
 
+_.pGetOne = function(query, userId) {
+	console.log('Game.pGetOne\n');
+	Object.assign(query, {
+		'players.userId': userId
+	});
+	console.log(query);
+	return new Promise(function(resolve, reject) {
+		GameModel.findOne(query, function(err, game) {
+			if (err) return reject(Error.mongoose(500, err));
+			if (!game) return reject(Error.invalidParameter);
+
+			resolve(game);
+		});
+	});
+};
+
 _.pCreate = function(user) {
 	console.log('Game.pCreate\n');
 	var gameQuery = {
-		creator: user.uuid,
+		creatorId: user.uuid,
 		players: [{
-			id: user.uuid,
+			userId: user.uuid,
 			name: user.name,
 			alive: 1,
 			role: 0,
@@ -31,8 +47,15 @@ _.pipeSuccessRender = function(req, res, game) {
 	console.log('Game.pipeSuccessRender\n');
 	var gameObj = {
 		id: game.uuid,
-		creator: game.creator,
-		players: game.players,
+		creatorId: game.creatorId,
+		players: game.players.map(function(player) {
+			return {
+				id: player.userId,
+				name: player.name,
+				alive: player.alive,
+				role: player.role
+			};
+		}),
 		scene: {
 			type: game.scene,
 			endTime: game.endTime,

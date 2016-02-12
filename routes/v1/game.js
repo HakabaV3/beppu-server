@@ -5,6 +5,20 @@ var express = require('express'),
 	Game = require('../../model/game.js'),
 	Error = require('../../model/error.js');
 
+router.get('/:gameId', function(req, res) {
+	var authQuery = {
+			token: req.headers['x-session-token']
+		},
+		gameQuery = {
+			uuid: req.params.gameId
+		};
+	console.log(req.params.gameId);
+	Auth.pGetOne(authQuery)
+		.then(auth => Game.pGetOne(gameQuery, auth.userId))
+		.then(game => Game.pipeSuccessRender(req, res, game))
+		.catch(error => Error.pipeErrorRender(req, res, error))
+})
+
 router.post('/', function(req, res) {
 	var authQuery = {
 			token: req.headers['x-session-token']

@@ -4,7 +4,7 @@ var mongoose = require('../model/db.js'),
 var gameSchema = new mongoose.Schema({
 	created: Number,
 	updated: Number,
-	creator: String,
+	creatorId: String,
 	scene: {
 		type: Number,
 		default: 0
