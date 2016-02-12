@@ -33,9 +33,11 @@ _.pipeSuccessRender = function(req, res, game) {
 		id: game.uuid,
 		creator: game.creator,
 		players: game.players,
-		scene: game.scene,
-		endTime: game.endTime,
-		lastAction: game.lastAction,
+		scene: {
+			type: game.scene,
+			endTime: game.endTime,
+			lastAction: game.lastAction
+		},
 		created: game.created,
 		updated: game.updated
 	};
