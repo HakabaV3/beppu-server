@@ -3,13 +3,16 @@ var mongoose = require('./db.js'),
 	Error = require('./error.js');
 
 var _ = {},
-	GameModel = mongoose.model('Game', schema);
+	GameModel = mongoose.model('Game', schema),
+	AuthHelper = require('../helper/auth.js');
 
 _.pGetOne = function(query, userId) {
 	console.log('Game.pGetOne\n');
-	Object.assign(query, {
-		'players.userId': userId
-	});
+	if (userId) {
+		Object.assign(query, {
+			'players.userId': userId
+		});
+	}
 	console.log(query);
 	return new Promise(function(resolve, reject) {
 		GameModel.findOne(query, function(err, game) {
@@ -40,6 +43,36 @@ _.pCreate = function(user) {
 
 				return resolve(createdGame);
 			});
+	});
+};
+
+_.pPushPlayer = function(gameObj) {
+	console.log('Game.pPushPlayer\n');
+	var gameQuery = {
+		uuid: gameObj.uuid,
+		$nor: [{
+			'players.userId': AuthHelper.currentUser.uuid
+		}]
+	};
+	return new Promise(function(resolve, reject) {
+		GameModel.findOneAndUpdate(gameQuery, {
+			$push: {
+				players: {
+					userId: AuthHelper.currentUser.uuid,
+					name: AuthHelper.currentUser.name,
+					alive: 1,
+					role: 0
+				}
+			}
+		}, {
+			safe: true,
+			new: true
+		}, function(err, updatedGame) {
+			if (err) return reject(Error.mongoose(500, err));
+			if (!updatedGame) return reject(Error.invalidParameter);
+
+			resolve(updatedGame);
+		});
 	});
 };
 

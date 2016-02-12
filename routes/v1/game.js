@@ -34,6 +34,23 @@ router.post('/', function(req, res) {
 		.catch(error => Error.pipeErrorRender(req, res, error))
 })
 
+router.post('/:gameId/join', function(req, res) {
+	var authQuery = {
+			token: req.headers['x-session-token']
+		},
+		userQuery = {
+			deleted: false
+		},
+		gameQuery = {
+			uuid: req.params.gameId
+		};
+	Auth.pGetOne(authQuery)
+		.then(auth => User.pGetOne(userQuery, auth))
+		.then(user => Game.pGetOne(gameQuery))
+		.then(game => Game.pPushPlayer(game))
+		.then(game => Game.pipeSuccessRender(req, res, game))
+		.catch(error => Error.pipeErrorRender(req, res, error))
+});
 router.post('/:gameId/invitation', function(req, res) {
 	var authQuery = {
 			token: req.headers['x-session-token']
