@@ -3,8 +3,13 @@ var express = require('express'),
 	Auth = require('../../model/auth.js'),
 	User = require('../../model/user.js'),
 	Game = require('../../model/game.js'),
+	GameHandler = require('../../model/game_handler.js'),
 	Invitation = require('../../model/invitation.js'),
 	Error = require('../../model/error.js');
+
+/******************************
+ * O/R mapper
+ ******************************/
 
 router.get('/:gameId', function(req, res) {
 	var authQuery = {
@@ -51,6 +56,7 @@ router.post('/:gameId/join', function(req, res) {
 		.then(game => Game.pipeSuccessRender(req, res, game))
 		.catch(error => Error.pipeErrorRender(req, res, error))
 });
+
 router.post('/:gameId/invitation', function(req, res) {
 	var authQuery = {
 			token: req.headers['x-session-token']
@@ -72,23 +78,6 @@ router.post('/:gameId/invitation', function(req, res) {
 		.catch(error => Error.pipeErrorRender(req, res, error))
 });
 
-router.post('/:gameId/start', function(req, res) {
-	var authQuery = {
-			token: req.headers['x-session-token']
-		},
-		settings = [
-			req.body.werewolf || 1, req.body.fortune || 0, req.body.knight || 0
-		];
-	Auth.pGetOne(authQuery)
-		.then(auth => Game.pStart({
-			uuid: req.params.gameId,
-			creatorId: auth.userId,
-			scene: 0
-		}, settings))
-		.then(game => Game.pipeSuccessRender(req, res, game))
-		.catch(error => Error.pipeErrorRender(req, res, error));
-})
-
 router.get('/:gameId/qrcode', function(req, res) {
 	var authQuery = {
 			token: req.headers['x-session-token']
@@ -100,6 +89,51 @@ router.get('/:gameId/qrcode', function(req, res) {
 		.then(auth => Game.pGetOne(gameQuery, auth.userId))
 		.then(game => Game.pQrcodeRender(req, res, game))
 		.catch(error => Error.pipeErrorRender(req, res, error));
+});
+
+
+/******************************
+ * Handling game condition
+ ******************************/
+
+
+router.post('/:gameId/start', function(req, res) {
+	var authQuery = {
+			token: req.headers['x-session-token']
+		},
+		settings = [
+			req.body.werewolf || 1, req.body.fortune || 0, req.body.knight || 0
+		];
+	Auth.pGetOne(authQuery)
+		.then(auth => GameHandler.pStart({
+			uuid: req.params.gameId,
+			creatorId: auth.userId,
+			scene: 0
+		}, settings))
+		.then(game => Game.pipeSuccessRender(req, res, game))
+		.catch(error => Error.pipeErrorRender(req, res, error));
 })
+
+router.post('/:gameId/vote', function(req, res) {
+	var authQuery = {
+			token: req.headers['x-session-token']
+		},
+		gameQuery = {
+			uuid: req.params.gameId,
+			scene: 1,
+			day: req.body.day
+		};
+	Auth.pGetOne(authQuery)
+		.then(auth => GameHandler.pVote(gameQuery, {
+			day: req.body.day,
+			gameId: req.params.gameId,
+			ownerId: auth.userId,
+			targetId: req.body.userId
+		}))
+		.then(game => GameHandler.pVoteResult(game))
+		.then(game => GameHandler.pEnd(game))
+		.then(game => Game.pipeSuccessRender(req, res, game))
+		.catch(error => Error.pipeErrorRender(req, res, error));
+});
 
 module.exports = router;

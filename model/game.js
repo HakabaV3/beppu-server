@@ -59,6 +59,7 @@ _.pPushPlayer = function(gameObj) {
 		GameModel.findOneAndUpdate(gameQuery, {
 			$push: {
 				players: {
+					gameId: gameObj.uuid,
 					userId: AuthHelper.currentUser.uuid,
 					name: AuthHelper.currentUser.name,
 					alive: 1,
@@ -91,6 +92,7 @@ _.pipeSuccessRender = function(req, res, game) {
 			};
 		}),
 		scene: {
+			day: game.day,
 			type: game.scene,
 			endTime: game.endTime,
 			lastAction: game.lastAction
@@ -112,60 +114,4 @@ _.pQrcodeRender = function(req, res, game) {
 	});
 };
 
-_.pStart = function(query, settings) {
-	console.log('Game.pStart');
-	return new Promise(function(resolve, reject) {
-		GameModel.findOne(query, function(err, game) {
-			if (err) return reject(Error.mongoose(500, err));
-			if (!game) return reject(Error.invalidParameter);
-
-			_randomRoles(game.players, settings, function(err, roles) {
-				if (err) return reject(Error.invalidParameter);
-
-				game.players.map(function(player, i) {
-					player.role = roles[i];
-				});
-				game.scene = 1;
-				game.save(function(err, updatedGame) {
-					if (err) return reject(Error.mongoose(500, err));
-					resolve(updatedGame);
-				});
-			});
-		});
-	});
-};
-
-function _randomRoles(players, settings, callback) {
-	var roles = [],
-		numOfCitizen = players.length - settings.reduce(function(pre, current) {
-			return pre + current;
-		});
-
-	if (numOfCitizen < 0) return callback('invalidParameter', null);
-
-	settings.unshift(numOfCitizen);
-	settings.map(function(num, i) {
-		_pushRole(roles, num, i);
-	});
-	_shuffle(roles);
-	return callback(null, roles);
-}
-
-function _pushRole(array, num, role) {
-	while (num) {
-		array.push(role);
-		num--;
-	}
-}
-
-function _shuffle(array) {
-	var m = array.length,
-		t, i;
-	while (m) {
-		i = Math.floor(Math.random() * m--);
-		t = array[m];
-		array[m] = array[i];
-		array[i] = t;
-	}
-}
 module.exports = _;

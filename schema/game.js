@@ -1,6 +1,7 @@
 var mongoose = require('../model/db.js'),
 	uuid = require('node-uuid'),
-	playerSchema = require('./player.js');
+	playerSchema = require('./player.js'),
+	voteSchema = require('./vote.js');
 
 var gameSchema = new mongoose.Schema({
 	created: Number,
@@ -17,6 +18,11 @@ var gameSchema = new mongoose.Schema({
 	endTime: {
 		type: Number,
 	},
+	day: {
+		type: Number,
+		default: 1
+	},
+	votes: [voteSchema],
 	players: [playerSchema],
 	uuid: String
 });
