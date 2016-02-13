@@ -72,6 +72,23 @@ router.post('/:gameId/invitation', function(req, res) {
 		.catch(error => Error.pipeErrorRender(req, res, error))
 });
 
+router.post('/:gameId/start', function(req, res) {
+	var authQuery = {
+			token: req.headers['x-session-token']
+		},
+		settings = [
+			req.body.werewolf || 1, req.body.fortune || 0, req.body.knight || 0
+		];
+	Auth.pGetOne(authQuery)
+		.then(auth => Game.pStart({
+			uuid: req.params.gameId,
+			creatorId: auth.userId,
+			scene: 0
+		}, settings))
+		.then(game => Game.pipeSuccessRender(req, res, game))
+		.catch(error => Error.pipeErrorRender(req, res, error));
+})
+
 router.get('/:gameId/qrcode', function(req, res) {
 	var authQuery = {
 			token: req.headers['x-session-token']

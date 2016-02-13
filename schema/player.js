@@ -3,7 +3,7 @@ var mongoose = require('../model/db.js');
 var playerSchema = new mongoose.Schema({
 	created: Number,
 	updated: Number,
-	userId: String.
+	userId: String,
 	gameId: String,
 	name: String,
 	alive: {
