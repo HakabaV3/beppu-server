@@ -1,6 +1,7 @@
 var mongoose = require('../model/db.js'),
 	uuid = require('node-uuid'),
 	playerSchema = require('./player.js'),
+	actionSchema = require('./action.js'),
 	voteSchema = require('./vote.js');
 
 var gameSchema = new mongoose.Schema({
@@ -22,6 +23,7 @@ var gameSchema = new mongoose.Schema({
 		type: Number,
 		default: 1
 	},
+	actions: [actionSchema],
 	votes: [voteSchema],
 	players: [playerSchema],
 	uuid: String

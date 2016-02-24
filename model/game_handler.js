@@ -55,8 +55,9 @@ _.pVote = function(gameQuery, voteQuery) {
 };
 
 _.pVoteResult = function(game) {
+	console.log('Game.pVoteResult');
 	return new Promise(function(resolve, reject) {
-		if (game.players.length > game.votes.length) {
+		if (!_shouldBeNextScene(game, 'vote')) {
 			return resolve(game);
 		}
 
@@ -78,13 +79,72 @@ _.pVoteResult = function(game) {
 	});
 };
 
+_.pAction = function(gameQuery, actionQuery) {
+	console.log('GameHandler.pAction');
+	Object.assign(gameQuery, {
+		$nor: [{
+			'actions.ownerId': actionQuery.ownerId,
+			'actions.day': actionQuery.day,
+		}],
+		'players.userId': actionQuery.ownerId
+	});
+	return new Promise(function(resolve, reject) {
+		GameModel.findOneAndUpdate(gameQuery, {
+			$push: {
+				actions: actionQuery
+			}
+		}, {
+			safe: true,
+			new: true
+		}, function(err, updatedGame) {
+			if (err) return reject(Error.mongoose(500, err));
+			if (!updatedGame) return reject(Error.invalidParameter);
+
+			return resolve(updatedGame);
+		});
+	});
+};
+
+_.pActionResult = function(game) {
+	console.log('GameHandler.pActionResult');
+	return new Promise(function(resolve, reject) {
+		if (!_shouldBeNextScene(game, 'action')) {
+			return resolve(game);
+		}
+
+		var savedId, killedPlayerName,
+			killedId = _killedPlayerId(game.actions.filter(function(action) {
+				if (action.ownerRole == 1) return true;
+				if (action.ownerRole == 3) savedId = action.targetId;
+
+				return false;
+			}));
+
+		game.players.forEach(function(player) {
+			if (player.userId == killedId && player.userId != savedId) {
+				player.alive = 0;
+				killedPlayerName = player.name;
+			}
+		});
+
+		game.scene = 1;
+		game.day++;
+		game.lastAction = killedPlayerName ? killedPlayerName + 'が人狼に殺されました' : '昨夜の被害者はいませんでした'
+		game.save(function(err, updatedGame) {
+			if (err) return reject(Error.mongoose(500, err));
+			return resolve(updatedGame);
+		});
+	});
+}
+
 _.pEnd = function(game) {
+	console.log('GameHandler.pEnd');
 	return new Promise(function(resolve, reject) {
 		var surviving = {
 			werewolf: 0,
 			citizen: 0
 		};
-		game.players.map(function(player) {
+		game.players.forEach(function(player) {
 			if (!player.alive) return;
 			if (player.role == 1) {
 				surviving.werewolf++;
@@ -107,6 +167,23 @@ _.pEnd = function(game) {
 	})
 }
 
+_.pGetPlayer = function(gameQuery, userId) {
+	Object.assign(gameQuery, {
+		'players.userId': userId
+	});
+	return new Promise(function(resolve, reject) {
+		GameModel.findOne(gameQuery, {}, function(err, game) {
+			if (err) return reject(Error.mongoose(500, err));
+			if (!game) return reject(Error.invalidParameter);
+
+			game.players.forEach(function(player) {
+				if (player.userId == userId) return resolve(player);
+			})
+			return reject(Error.invalidParameter);
+		});
+	});
+};
+
 function _randomRoles(players, settings, callback) {
 	var roles = [],
 		numOfCitizen = players.length - settings.reduce(function(pre, current) {
@@ -116,7 +193,7 @@ function _randomRoles(players, settings, callback) {
 	if (numOfCitizen < 0) return callback('invalidParameter', null);
 
 	settings.unshift(numOfCitizen);
-	settings.map(function(num, i) {
+	settings.forEach(function(num, i) {
 		_pushRole(roles, num, i);
 	});
 	_shuffle(roles);
@@ -144,7 +221,7 @@ function _shuffle(array) {
 function _killedPlayerId(votes) {
 	var result = {},
 		max = [];
-	votes.map(function(vote) {
+	votes.forEach(function(vote) {
 		var targetId = vote.targetId;
 		if (!result.hasOwnProperty(targetId)) {
 			result[targetId] = 0;
@@ -160,6 +237,24 @@ function _killedPlayerId(votes) {
 		if (value == max) max.push(key);
 	}
 	return max[Math.floor(Math.random() * max.length)];
+}
+
+function _shouldBeNextScene(game, type) {
+	var objects, numOfActionsInDay = 0,
+		numOfAlivePlayer = 0;
+	if (type == 'vote') {
+		objects = game.votes;
+	} else {
+		objects = game.actions;
+	}
+
+	objects.forEach(function(obj) {
+		if (game.day == obj.day) numOfActionsInDay++;
+	});
+	game.players.forEach(function(player) {
+		if (player.alive) numOfAlivePlayer++;
+	});
+	return numOfActionsInDay >= numOfAlivePlayer ? true : false;
 }
 
 module.exports = _;

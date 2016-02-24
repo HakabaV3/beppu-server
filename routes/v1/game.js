@@ -123,6 +123,7 @@ router.post('/:gameId/vote', function(req, res) {
 			scene: 1,
 			day: req.body.day
 		};
+	console.log(req.body);
 	Auth.pGetOne(authQuery)
 		.then(auth => GameHandler.pVote(gameQuery, {
 			day: req.body.day,
@@ -131,6 +132,34 @@ router.post('/:gameId/vote', function(req, res) {
 			targetId: req.body.userId
 		}))
 		.then(game => GameHandler.pVoteResult(game))
+		.then(game => GameHandler.pEnd(game))
+		.then(game => Game.pipeSuccessRender(req, res, game))
+		.catch(error => Error.pipeErrorRender(req, res, error));
+});
+
+router.post('/:gameId/action', function(req, res) {
+	var authQuery = {
+			token: req.headers['x-session-token']
+		},
+		userQuery = {
+			deleted: false
+		},
+		gameQuery = {
+			uuid: req.params.gameId,
+			scene: 2,
+			day: req.body.day
+		};
+	Auth.pGetOne(authQuery)
+		.then(auth => User.pGetOne(userQuery, auth))
+		.then(user => GameHandler.pGetPlayer(gameQuery, user.uuid))
+		.then(player => GameHandler.pAction(gameQuery, {
+			day: req.body.day,
+			gameId: req.params.gameId,
+			ownerId: player.userId,
+			ownerRole: player.role,
+			targetId: req.body.userId
+		}))
+		.then(game => GameHandler.pActionResult(game))
 		.then(game => GameHandler.pEnd(game))
 		.then(game => Game.pipeSuccessRender(req, res, game))
 		.catch(error => Error.pipeErrorRender(req, res, error));
