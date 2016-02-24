@@ -31,12 +31,22 @@ _.pStart = function(query, settings) {
 _.pVote = function(gameQuery, voteQuery) {
 	console.log('Game.pVote');
 	Object.assign(gameQuery, {
-		$nor: [{
-			'votes.ownerId': voteQuery.ownerId,
-			'votes.day': voteQuery.day
+		'$and': [{
+			'votes.$.ownerId': {
+				'$ne': voteQuery.ownerId
+			},
+			'votes.$.day': {
+				'$ne': voteQuery.day
+			}
 		}],
 		'players.userId': voteQuery.ownerId
 	});
+
+	console.log(gameQuery);
+	GameModel.findOne(gameQuery, {}, function(err, game) {
+		console.log(game);
+	});
+
 	return new Promise(function(resolve, reject) {
 		GameModel.findOneAndUpdate(gameQuery, {
 			$push: {
@@ -61,9 +71,14 @@ _.pVoteResult = function(game) {
 			return resolve(game);
 		}
 
-		var killedId = _killedPlayerId(game.votes),
+		var filteredVotes = game.votes.filter(function(vote) {
+				if (vote.day == game.day) return true;
+				return false;
+			}),
+			killedId = _killedPlayerId(filteredVotes),
 			killedPlayerName = '';
-		game.players.map(function(player) {
+
+		game.players.forEach(function(player) {
 			if (player.userId == killedId) {
 				player.alive = 0;
 				killedPlayerName = player.name;
@@ -82,9 +97,13 @@ _.pVoteResult = function(game) {
 _.pAction = function(gameQuery, actionQuery) {
 	console.log('GameHandler.pAction');
 	Object.assign(gameQuery, {
-		$nor: [{
-			'actions.ownerId': actionQuery.ownerId,
-			'actions.day': actionQuery.day,
+		'$and': [{
+			'actions.$.ownerId': {
+				'$ne': actionQuery.ownerId
+			},
+			'actions.$.day': {
+				'$ne': actionQuery.day
+			}
 		}],
 		'players.userId': actionQuery.ownerId
 	});
@@ -220,7 +239,7 @@ function _shuffle(array) {
 
 function _killedPlayerId(votes) {
 	var result = {},
-		max = [];
+		max = [0];
 	votes.forEach(function(vote) {
 		var targetId = vote.targetId;
 		if (!result.hasOwnProperty(targetId)) {
@@ -230,11 +249,11 @@ function _killedPlayerId(votes) {
 	});
 	for (var key in result) {
 		var value = result[key];
-		if (value > max) {
+		if (value > max[0]) {
 			max = [key];
 			continue;
 		}
-		if (value == max) max.push(key);
+		if (value == max[0]) max.push(key);
 	}
 	return max[Math.floor(Math.random() * max.length)];
 }

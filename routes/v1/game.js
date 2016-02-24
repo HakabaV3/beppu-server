@@ -123,7 +123,7 @@ router.post('/:gameId/vote', function(req, res) {
 			scene: 1,
 			day: req.body.day
 		};
-	console.log(req.body);
+
 	Auth.pGetOne(authQuery)
 		.then(auth => GameHandler.pVote(gameQuery, {
 			day: req.body.day,
