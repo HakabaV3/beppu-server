@@ -122,15 +122,16 @@ router.post('/:gameId/vote', function(req, res) {
 			uuid: req.params.gameId,
 			scene: 1,
 			day: req.body.day
+		},
+		voteQuery = {
+			day: req.body.day,
+			gameId: req.params.gameId,
+			targetId: req.body.userId
 		};
 
 	Auth.pGetOne(authQuery)
-		.then(auth => GameHandler.pVote(gameQuery, {
-			day: req.body.day,
-			gameId: req.params.gameId,
-			ownerId: auth.userId,
-			targetId: req.body.userId
-		}))
+		.then(auth => Game.pGetOne(gameQuery, auth.userId))
+		.then(game => GameHandler.pVote(game, voteQuery))
 		.then(game => GameHandler.pVoteResult(game))
 		.then(game => GameHandler.pEnd(game))
 		.then(game => Game.pipeSuccessRender(req, res, game))
@@ -150,13 +151,12 @@ router.post('/:gameId/action', function(req, res) {
 			day: req.body.day
 		};
 	Auth.pGetOne(authQuery)
-		.then(auth => User.pGetOne(userQuery, auth))
-		.then(user => GameHandler.pGetPlayer(gameQuery, user.uuid))
-		.then(player => GameHandler.pAction(gameQuery, {
+		.then(auth => Game.pGetOne(gameQuery, auth.userId))
+		.then(game => GameHandler.pAction(game, {
 			day: req.body.day,
 			gameId: req.params.gameId,
-			ownerId: player.userId,
-			ownerRole: player.role,
+			ownerId: game.currentPlayer.userId,
+			ownerRole: game.currentPlayer.role,
 			targetId: req.body.userId
 		}))
 		.then(game => GameHandler.pActionResult(game))

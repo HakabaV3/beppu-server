@@ -1,9 +1,13 @@
 var mongoose = require('./db.js'),
-	schema = require('../schema/game.js'),
+	GameSchema = require('../schema/game.js'),
+	VoteSchema = require('../schema/vote.js'),
+	ActionSchema = require('../schema/action.js'),
 	Error = require('./error.js');
 
 var _ = {},
-	GameModel = mongoose.model('Game', schema);
+	GameModel = mongoose.model('Game', GameSchema),
+	VoteModel = mongoose.model('Vote', VoteSchema),
+	ActionModel = mongoose.model('Action', ActionSchema);
 
 _.pStart = function(query, settings) {
 	console.log('Game.pStart');
@@ -28,34 +32,20 @@ _.pStart = function(query, settings) {
 	});
 };
 
-_.pVote = function(gameQuery, voteQuery) {
+_.pVote = function(game, voteQuery) {
 	console.log('Game.pVote');
-	Object.assign(gameQuery, {
-		'$and': [{
-			'votes.$.ownerId': {
-				'$ne': voteQuery.ownerId
-			},
-			'votes.$.day': {
-				'$ne': voteQuery.day
-			}
-		}],
-		'players.userId': voteQuery.ownerId
-	});
-
-	console.log(gameQuery);
-	GameModel.findOne(gameQuery, {}, function(err, game) {
-		console.log(game);
-	});
-
+	Object.assign(voteQuery, {
+		'ownerId': game.currentPlayer.userId
+	})
 	return new Promise(function(resolve, reject) {
-		GameModel.findOneAndUpdate(gameQuery, {
-			$push: {
-				votes: voteQuery
-			}
-		}, {
-			safe: true,
-			new: true
-		}, function(err, updatedGame) {
+		if (!game.currentPlayer.alive) return reject(Error.invalidParameter);
+		if (game.currentPlayer.userId == voteQuery.targetId) return reject(Error.invalidParameter);
+		game.votes.forEach(function(vote) {
+			if (vote.day == game.day && vote.ownerId == game.currentPlayer.userId) return reject(Error.invalidParameter);
+		});
+
+		game.votes.push(new VoteModel(voteQuery));
+		game.save(function(err, updatedGame) {
 			if (err) return reject(Error.mongoose(500, err));
 			if (!updatedGame) return reject(Error.invalidParameter);
 
@@ -94,28 +84,17 @@ _.pVoteResult = function(game) {
 	});
 };
 
-_.pAction = function(gameQuery, actionQuery) {
+_.pAction = function(game, actionQuery) {
 	console.log('GameHandler.pAction');
-	Object.assign(gameQuery, {
-		'$and': [{
-			'actions.$.ownerId': {
-				'$ne': actionQuery.ownerId
-			},
-			'actions.$.day': {
-				'$ne': actionQuery.day
-			}
-		}],
-		'players.userId': actionQuery.ownerId
-	});
 	return new Promise(function(resolve, reject) {
-		GameModel.findOneAndUpdate(gameQuery, {
-			$push: {
-				actions: actionQuery
-			}
-		}, {
-			safe: true,
-			new: true
-		}, function(err, updatedGame) {
+		if (!game.currentPlayer.alive) return reject(Error.invalidParameter);
+		if (game.currentPlayer.userId == actionQuery.targetId) return reject(Error.invalidParameter);
+		game.actions.forEach(function(action) {
+			if (action.day == game.day && action.ownerId == game.currentPlayer.userId) return reject(Error.invalidParameter);
+		});
+
+		game.actions.push(new ActionModel(actionQuery));
+		game.save(function(err, updatedGame) {
 			if (err) return reject(Error.mongoose(500, err));
 			if (!updatedGame) return reject(Error.invalidParameter);
 

@@ -8,18 +8,23 @@ var _ = {},
 	GameModel = mongoose.model('Game', schema);
 
 _.pGetOne = function(query, userId) {
-	console.log('Game.pGetOne\n');
+	console.log('Game.pGetOne');
 	if (userId) {
 		Object.assign(query, {
 			'players.userId': userId
 		});
 	}
-	console.log(query);
+
 	return new Promise(function(resolve, reject) {
 		GameModel.findOne(query, function(err, game) {
 			if (err) return reject(Error.mongoose(500, err));
 			if (!game) return reject(Error.invalidParameter);
 
+			if (userId) {
+				game.players.forEach(function(player) {
+					if (player.userId == userId) game.currentPlayer = player;
+				})
+			}
 			resolve(game);
 		});
 	});
