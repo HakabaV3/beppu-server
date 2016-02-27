@@ -7,14 +7,16 @@ var _ = {},
 	AuthModel = mongoose.model('Auth', schema),
 	UserModel = mongoose.model('User', require('../schema/user.js'));
 
-_.pSignIn = function(query) {
+_.pSignIn = function(query, req) {
 	console.log('Auth.pSignIn\n');
 	return new Promise(function(resolve, reject) {
 		UserModel.findOne(query, {}, function(err, user) {
 			if (err) return reject(Error.mongoose(500, err));
 			if (!user) return reject(Error.unauthorized);
 
-			AuthHelper.currentUser = user;
+			console.log(req.beppuSession);
+			console.log(user);
+			req.beppuSession.currentUser = user;
 			return resolve(user);
 		});
 	});
@@ -32,7 +34,7 @@ _.pGetOne = function(query) {
 	});
 };
 
-_.pCreate = function(user) {
+_.pCreate = function(user, req) {
 	console.log('Auth.pCreate\n');
 	var query = {
 		userId: user.uuid,
@@ -47,11 +49,10 @@ _.pCreate = function(user) {
 				if (!user) resolve(createdAuth);
 
 				user.token = createdAuth.token;
-				AuthHelper.currentUser = user;
+				req.beppuSession.currentUser = user;
 				return resolve(user);
 			});
 	});
 };
-
 
 module.exports = _;

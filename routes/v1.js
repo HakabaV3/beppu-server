@@ -19,7 +19,7 @@ express.response.ng = function(code, result) {
 };
 
 router.use(function(req, res, next) {
-	req.session = {};
+	req.beppuSession = {};
 	res.set({
 		'Content-Type': 'application/json',
 		'Access-Control-Allow-Origin': '*',

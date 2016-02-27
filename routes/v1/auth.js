@@ -17,7 +17,7 @@ router.get('/me', function(req, res) {
 		};
 
 	Auth.pGetOne(authQuery)
-		.then(auth => User.pGetOne(userQuery, auth))
+		.then(auth => User.pGetOne(userQuery, auth, req))
 		.then(user => User.pipeSuccessRender(req, res, user))
 		.catch(error => Error.pipeErrorRender(req, res, error));
 });
@@ -30,8 +30,8 @@ router.post('/', function(req, res) {
 		password: AuthHelper.toHashedPassword(req.body.password)
 	};
 
-	Auth.pSignIn(userQeury)
-		.then(user => Auth.pCreate(user))
+	Auth.pSignIn(userQeury, req)
+		.then(user => Auth.pCreate(user, req))
 		.then(user => User.pipeSuccessRender(req, res, user))
 		.catch(error => Error.pipeErrorRender(req, res, error));
 });

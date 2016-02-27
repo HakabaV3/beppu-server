@@ -6,7 +6,7 @@ var _ = {},
 	AuthHelper = require('../helper/auth.js'),
 	UserModel = mongoose.model('User', schema);
 
-_.pGetOne = function(query, auth) {
+_.pGetOne = function(query, auth, req) {
 	console.log('User.pGetOne\n');
 	if (auth && !query.uuid) query.uuid = auth.userId;
 
@@ -15,9 +15,8 @@ _.pGetOne = function(query, auth) {
 			if (err) return reject(Error.mongoose(500, err));
 			if (!user) return reject(Error.unauthorized);
 
-			if (auth) {
-				AuthHelper.currentUser = user;
-				user.token = auth.token;
+			if (auth && req) {
+				req.beppuSession.currentUser = user;
 			}
 			resolve(user);
 		});

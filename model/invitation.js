@@ -11,15 +11,8 @@ _.pGetOne = function(query) {
 	return new Promise(function(resolve, reject) {});
 };
 
-_.pCreate = function(query, gameId) {
+_.pCreate = function(query) {
 	console.log('Invitation.pCreate\n');
-	Object.assign(query, {
-		gameId: gameId,
-		creator: {
-			id: AuthHelper.currentUser.uuid,
-			name: AuthHelper.currentUser.name
-		}
-	});
 	return new Promise(function(resolve, reject) {
 		new InvitationModel(query)
 			.save(function(err, createdInvitation) {

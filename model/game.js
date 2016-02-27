@@ -5,7 +5,8 @@ var mongoose = require('./db.js'),
 	Error = require('./error.js');
 
 var _ = {},
-	GameModel = mongoose.model('Game', schema);
+	GameModel = mongoose.model('Game', schema),
+	PlayerModel = mongoose.model('Player', schema);
 
 _.pGetOne = function(query, userId) {
 	console.log('Game.pGetOne');
@@ -33,7 +34,10 @@ _.pGetOne = function(query, userId) {
 _.pCreate = function(user) {
 	console.log('Game.pCreate\n');
 	var gameQuery = {
-		creatorId: user.uuid,
+		creator: {
+			id: user.uuid,
+			name: user.name
+		},
 		players: [{
 			userId: user.uuid,
 			name: user.name,
@@ -52,29 +56,18 @@ _.pCreate = function(user) {
 	});
 };
 
-_.pPushPlayer = function(gameObj) {
-	console.log('Game.pPushPlayer\n');
-	var gameQuery = {
-		uuid: gameObj.uuid,
-		$nor: [{
-			'players.userId': AuthHelper.currentUser.uuid
-		}]
+_.pPushPlayer = function(gameObj, currentUser) {
+	console.log('Game.pPushPlayer');
+	var playerQuery = {
+		gameId: gameObj.uuid,
+		userId: currentUser.uuid,
+		name: currentUser.name,
+		alive: 1,
+		role: 0
 	};
 	return new Promise(function(resolve, reject) {
-		GameModel.findOneAndUpdate(gameQuery, {
-			$push: {
-				players: {
-					gameId: gameObj.uuid,
-					userId: AuthHelper.currentUser.uuid,
-					name: AuthHelper.currentUser.name,
-					alive: 1,
-					role: 0
-				}
-			}
-		}, {
-			safe: true,
-			new: true
-		}, function(err, updatedGame) {
+		gameObj.players.push(new PlayerModel(playerQuery));
+		gameObj.save(function(err, updatedGame) {
 			if (err) return reject(Error.mongoose(500, err));
 			if (!updatedGame) return reject(Error.invalidParameter);
 
@@ -84,10 +77,10 @@ _.pPushPlayer = function(gameObj) {
 };
 
 _.pipeSuccessRender = function(req, res, game) {
-	console.log('Game.pipeSuccessRender\n');
+	console.log('Game.pipeSuccessRender');
 	var gameObj = {
 		id: game.uuid,
-		creatorId: game.creatorId,
+		creatorId: game.creator.id,
 		players: game.players.map(function(player) {
 			return {
 				id: player.userId,

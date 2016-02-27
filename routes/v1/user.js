@@ -13,7 +13,7 @@ router.post('/', function(req, res) {
 	};
 
 	User.pCreate(userQuery)
-		.then(user => Auth.pCreate(user))
+		.then(user => Auth.pCreate(user, req))
 		.then(user => User.pipeSuccessRender(req, res, user))
 		.catch(error => Error.pipeErrorRender(req, res, error));
 });
