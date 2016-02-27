@@ -2,6 +2,7 @@ var mongoose = require('./db.js'),
 	GameSchema = require('../schema/game.js'),
 	VoteSchema = require('../schema/vote.js'),
 	ActionSchema = require('../schema/action.js'),
+	Log = require('./log.js'),
 	Error = require('./error.js');
 
 var _ = {},
@@ -57,32 +58,28 @@ _.pVote = function(game, voteQuery) {
 
 _.pVoteResult = function(game) {
 	console.log('Game.pVoteResult');
-	return new Promise(function(resolve, reject) {
-		if (!_shouldBeNextScene(game, 'vote')) {
-			return resolve(game);
+	if (!_shouldBeNextScene(game, 'vote')) return Promise.resolve(game);
+
+	var filteredVotes = game.votes.filter(function(vote) {
+			if (vote.day == game.day) return true;
+			return false;
+		}),
+		killedId = _killedPlayerId(filteredVotes),
+		killedPlayerName = '';
+
+	game.players.forEach(function(player) {
+		if (player.userId == killedId) {
+			player.alive = 0;
+			killedPlayerName = player.name;
 		}
-
-		var filteredVotes = game.votes.filter(function(vote) {
-				if (vote.day == game.day) return true;
-				return false;
-			}),
-			killedId = _killedPlayerId(filteredVotes),
-			killedPlayerName = '';
-
-		game.players.forEach(function(player) {
-			if (player.userId == killedId) {
-				player.alive = 0;
-				killedPlayerName = player.name;
-			}
-		});
-
-		game.scene = 2;
-		game.lastAction = killedPlayerName + 'が処刑されました'
-		game.save(function(err, updatedGame) {
-			if (err) return reject(Error.mongoose(500, err));
-			return resolve(updatedGame);
-		});
 	});
+
+	game.scene = 2;
+	game.lastAction = killedPlayerName + 'が処刑されました'
+	return game.save()
+		.then(updatedGame => Log.pCreate(updatedGame, Log.generateQuery(updatedGame, Log.TYPE.CHANGETIME, null, null)))
+		.then(updatedGame => Log.pCreate(updatedGame, Log.generateQuery(updatedGame, Log.TYPE.ENDVOTE, null, killedId)))
+		.catch(err => Promise.reject(err));
 };
 
 _.pAction = function(game, actionQuery) {
@@ -138,33 +135,30 @@ _.pActionResult = function(game) {
 
 _.pEnd = function(game) {
 	console.log('GameHandler.pEnd');
-	return new Promise(function(resolve, reject) {
-		var surviving = {
-			werewolf: 0,
-			citizen: 0
-		};
-		game.players.forEach(function(player) {
-			if (!player.alive) return;
-			if (player.role == 1) {
-				surviving.werewolf++;
-				return;
-			}
-			surviving.citizen++;
-		});
-
-		if (surviving.werewolf != 0 && surviving.werewolf < surviving.citizen) {
-			return resolve(game);
+	var surviving = {
+		werewolf: 0,
+		citizen: 0
+	};
+	game.players.forEach(function(player) {
+		if (!player.alive) return;
+		if (player.role == 1) {
+			surviving.werewolf++;
+			return;
 		}
+		surviving.citizen++;
+	});
 
-		var wonTeam = surviving.werewolf == 0 ? '市民側' : '人狼側';
-		game.scene = 3;
-		game.lastAction = wonTeam + 'が勝利しました'
-		game.save(function(err, updatedGame) {
-			if (err) return reject(Error.mongoose(500, err));
-			return resolve(updatedGame);
-		})
-	})
-}
+	if (surviving.werewolf != 0 && surviving.werewolf < surviving.citizen) {
+		return Promise.resolve(game);
+	}
+
+	var wonTeam = surviving.werewolf == 0 ? 'citizen' : 'werewolf';
+	game.scene = 3;
+	game.lastAction = wonTeam
+	return game.save()
+		.then(updatedGame => Log.pCreate(updatedGame, Log.generateQuery(updatedGame, Log.TYPE.FINISH, null, null)))
+		.catch(err => Promise.reject(err));
+};
 
 _.pGetPlayer = function(gameQuery, userId) {
 	Object.assign(gameQuery, {

@@ -57,7 +57,7 @@ _.pipeSuccessRender = function(req, res, logs) {
 	});
 };
 
-_.generateQuery = function(game, type, currentUser) {
+_.generateQuery = function(game, type, currentUser, targetId) {
 	var query = {
 		created: game.updated,
 		gameId: game.uuid,
@@ -92,6 +92,32 @@ _.generateQuery = function(game, type, currentUser) {
 				parameters: {
 					roles: roles,
 					settings: {}
+				}
+			});
+			break;
+		case _.TYPE.CHANGETIME:
+			Object.assign(query, {
+				parameters: {
+					created: game.updated - 1,
+					day: game.day,
+					time: game.scene == 1 ? "morning" : "night"
+				}
+			});
+			break;
+		case _.TYPE.ENDVOTE:
+			Object.assign(query, {
+				parameters: {
+					decided: targetId === undefined ? false : true,
+					targetId: targetId,
+					candidates: null
+				}
+			});
+			break;
+		case _.TYPE.FINISH:
+			Object.assign(query, {
+				parameters: {
+					winner: game.lastAction,
+					reason: game.lastAction + "が勝ったからだYO☆"
 				}
 			});
 			break;
