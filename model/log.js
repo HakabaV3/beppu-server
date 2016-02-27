@@ -19,7 +19,7 @@ _.pGet = function(query) {
 	console.log('Log.pGet');
 	var option = {
 		sort: {
-			created: 'desc'
+			created: 'asc'
 		}
 	};
 	return new Promise(function(resolve, reject) {
