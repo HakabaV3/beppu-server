@@ -85,13 +85,19 @@ _.generateQuery = function(game, type, currentUser, targetId) {
 			break;
 		case _.TYPE.START:
 			var roles = {};
+			var settings = {};
 			game.players.forEach(function(player) {
+				var key = Player.typeToString(player.role);
+				if (!settings.hasOwnProperty(key)) {
+					settings[key] = 0;
+				}
+				settings[key]++;
 				roles[player.userId] = Player.typeToString(player.role);
 			});
 			Object.assign(query, {
 				parameters: {
 					roles: roles,
-					settings: {}
+					settings: settings
 				}
 			});
 			break;
