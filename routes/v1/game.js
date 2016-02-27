@@ -80,7 +80,6 @@ router.post('/:gameId/join', function(req, res) {
 		.then(auth => User.pGetOne(userQuery, auth, req))
 		.then(user => Game.pGetOne(gameQuery))
 		.then(game => Game.pPushPlayer(game, req.beppuSession.currentUser))
-		.then(game => Log.pCreate(game, Log.generateQuery(game, Log.TYPE.JOIN, req.beppuSession.currentUser)))
 		.then(game => Game.pipeSuccessRender(req, res, game))
 		.catch(error => Error.pipeErrorRender(req, res, error))
 });
@@ -142,20 +141,10 @@ router.post('/:gameId/start', function(req, res) {
 	Auth.pGetOne(authQuery)
 		.then(auth => GameHandler.pStart({
 			uuid: req.params.gameId,
-			creatorId: auth.userId,
+			'creator.id': auth.userId,
 			scene: 0
 		}, settings))
-		.then(game => Log.pCreate(game, {
-			created: game.updated,
-			gameId: game.uuid,
-			type: Log.TYPE.START,
-			parameters: {
-				roles: {
-					id: req.beppuSession.currentUser.uuid,
-					name: req.beppuSession.currentUser.name
-				}
-			}
-		}))
+		.then(game => Log.pCreate(game, Log.generateQuery(game, Log.TYPE.START, req.beppuSession.currentUser)))
 		.then(game => Game.pipeSuccessRender(req, res, game))
 		.catch(error => Error.pipeErrorRender(req, res, error));
 })

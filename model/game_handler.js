@@ -13,6 +13,7 @@ _.pStart = function(query, settings) {
 	console.log('Game.pStart');
 	return new Promise(function(resolve, reject) {
 		GameModel.findOne(query, function(err, game) {
+			console.log(game);
 			if (err) return reject(Error.mongoose(500, err));
 			if (!game) return reject(Error.invalidParameter);
 

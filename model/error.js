@@ -1,6 +1,8 @@
 const Error = {};
 
 Error.pipeErrorRender = function(req, res, err) {
+	console.log('Error.pipeErrorRender');
+	console.log(err);
 	return res.ng(err.code, {
 		error: err.error
 	});

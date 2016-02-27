@@ -1,12 +1,14 @@
 var mongoose = require('./db.js'),
 	schema = require('../schema/game.js'),
+	PlayerSchema = require('../schema/player.js'),
 	AuthHelper = require('../helper/auth.js'),
 	Qrcode = require('qrcode'),
+	Log = require('./log.js'),
 	Error = require('./error.js');
 
 var _ = {},
 	GameModel = mongoose.model('Game', schema),
-	PlayerModel = mongoose.model('Player', schema);
+	PlayerModel = mongoose.model('Player', PlayerSchema);
 
 _.pGetOne = function(query, userId) {
 	console.log('Game.pGetOne');
@@ -65,15 +67,13 @@ _.pPushPlayer = function(gameObj, currentUser) {
 		alive: 1,
 		role: 0
 	};
-	return new Promise(function(resolve, reject) {
-		gameObj.players.push(new PlayerModel(playerQuery));
-		gameObj.save(function(err, updatedGame) {
-			if (err) return reject(Error.mongoose(500, err));
-			if (!updatedGame) return reject(Error.invalidParameter);
-
-			resolve(updatedGame);
-		});
-	});
+	for (var player of gameObj.players) {
+		if (player.userId == currentUser.uuid) return Promise.resolve(gameObj);
+	}
+	gameObj.players.push(new PlayerModel(playerQuery));
+	return gameObj.save()
+		.then(updatedGame => Log.pCreate(gameObj, Log.generateQuery(gameObj, Log.TYPE.JOIN, currentUser)))
+		.catch(err => Promise.rejct(err));
 };
 
 _.pipeSuccessRender = function(req, res, game) {

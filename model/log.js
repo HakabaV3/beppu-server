@@ -1,5 +1,6 @@
 var mongoose = require('./db.js'),
 	LogSchema = require('../schema/log.js'),
+	Player = require('./player.js'),
 	Error = require('./error.js');
 
 var _ = {},
@@ -83,14 +84,14 @@ _.generateQuery = function(game, type, currentUser) {
 			});
 			break;
 		case _.TYPE.START:
+			var roles = {};
+			game.players.forEach(function(player) {
+				roles[player.userId] = Player.typeToString(player.role);
+			});
 			Object.assign(query, {
 				parameters: {
-					roles: {
-
-					},
-					settings: {
-
-					}
+					roles: roles,
+					settings: {}
 				}
 			});
 			break;

@@ -7,7 +7,7 @@ var _ = {},
 	UserModel = mongoose.model('User', schema);
 
 _.pGetOne = function(query, auth, req) {
-	console.log('User.pGetOne\n');
+	console.log('User.pGetOne');
 	if (auth && !query.uuid) query.uuid = auth.userId;
 
 	return new Promise(function(resolve, reject) {
