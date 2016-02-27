@@ -74,6 +74,7 @@ router.post('/:gameId/join', function(req, res) {
 			deleted: false
 		},
 		gameQuery = {
+			scene: 0,
 			uuid: req.params.gameId
 		};
 	Auth.pGetOne(authQuery)
@@ -144,7 +145,8 @@ router.post('/:gameId/start', function(req, res) {
 			'creator.id': auth.userId,
 			scene: 0
 		}, settings))
-		.then(game => Log.pCreate(game, Log.generateQuery(game, Log.TYPE.START, req.beppuSession.currentUser)))
+		.then(game => Log.pCreate(game, Log.generateQuery(game, Log.TYPE.START, null)))
+		.then(game => Log.pCreate(game, Log.generateQuery(game, Log.TYPE.CHANGETIME, null)))
 		.then(game => Game.pipeSuccessRender(req, res, game))
 		.catch(error => Error.pipeErrorRender(req, res, error));
 })
@@ -180,13 +182,12 @@ router.post('/:gameId/action', function(req, res) {
 		},
 		gameQuery = {
 			uuid: req.params.gameId,
-			scene: 2,
-			day: req.body.day
+			scene: 2
 		};
 	Auth.pGetOne(authQuery)
 		.then(auth => Game.pGetOne(gameQuery, auth.userId))
 		.then(game => GameHandler.pAction(game, {
-			day: req.body.day,
+			day: game.day,
 			gameId: req.params.gameId,
 			ownerId: game.currentPlayer.userId,
 			ownerRole: game.currentPlayer.role,

@@ -107,9 +107,17 @@ _.generateQuery = function(game, type, currentUser, targetId) {
 		case _.TYPE.ENDVOTE:
 			Object.assign(query, {
 				parameters: {
-					decided: targetId === undefined ? false : true,
+					decided: targetId == null ? false : true,
 					targetId: targetId,
 					candidates: null
+				}
+			});
+			break;
+		case _.TYPE.ENDNIGHTACTION:
+			Object.assign(query, {
+				parameters: {
+					result: targetId == null ? "defend" : "kill",
+					targetId: targetId,
 				}
 			});
 			break;

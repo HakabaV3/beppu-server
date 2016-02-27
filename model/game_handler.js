@@ -103,35 +103,32 @@ _.pAction = function(game, actionQuery) {
 
 _.pActionResult = function(game) {
 	console.log('GameHandler.pActionResult');
-	return new Promise(function(resolve, reject) {
-		if (!_shouldBeNextScene(game, 'action')) {
-			return resolve(game);
+	if (!_shouldBeNextScene(game, 'action')) return Promise.resolve(game);
+
+	var savedId, killedPlayerName,
+		killedId = _killedPlayerId(game.actions.filter(function(action) {
+			if (action.ownerRole == 1) return true;
+			if (action.ownerRole == 3) savedId = action.targetId;
+
+			return false;
+		}));
+
+	for (var player of game.players) {
+		if (player.userId == killedId && player.userId != savedId) {
+			player.alive = 0;
+			killedPlayerName = player.name;
 		}
+	}
 
-		var savedId, killedPlayerName,
-			killedId = _killedPlayerId(game.actions.filter(function(action) {
-				if (action.ownerRole == 1) return true;
-				if (action.ownerRole == 3) savedId = action.targetId;
-
-				return false;
-			}));
-
-		game.players.forEach(function(player) {
-			if (player.userId == killedId && player.userId != savedId) {
-				player.alive = 0;
-				killedPlayerName = player.name;
-			}
-		});
-
-		game.scene = 1;
-		game.day++;
-		game.lastAction = killedPlayerName ? killedPlayerName + 'が人狼に殺されました' : '昨夜の被害者はいませんでした'
-		game.save(function(err, updatedGame) {
-			if (err) return reject(Error.mongoose(500, err));
-			return resolve(updatedGame);
-		});
-	});
-}
+	game.scene = 1;
+	game.day++;
+	game.lastAction = killedPlayerName ? killedPlayerName + 'が人狼に殺されました' : '昨夜の被害者はいませんでした'
+	if (!killedPlayerName) killedId = null;
+	return game.save()
+		.then(updatedGame => Log.pCreate(updatedGame, Log.generateQuery(updatedGame, Log.TYPE.CHANGETIME, null, null)))
+		.then(updatedGame => Log.pCreate(updatedGame, Log.generateQuery(updatedGame, Log.TYPE.ENDNIGHTACTION, null, killedId)))
+		.catch(err => Promise.reject(err));
+};
 
 _.pEnd = function(game) {
 	console.log('GameHandler.pEnd');
